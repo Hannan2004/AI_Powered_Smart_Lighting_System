@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+kafka-python
+langchain
+langchain-groq
+langgraph
+python-multipart
+prometheus-client
+python-dotenv
+httpx
