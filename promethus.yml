@@ -27,6 +27,14 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
     scrape_timeout: 10s
+    
+  # Power Grid Management Agent monitoring
+  - job_name: 'power-agent'
+    static_configs:
+      - targets: ['power-agent:8002']
+    metrics_path: '/metrics'
+    scrap_interval: 30s
+    scrape_timeout: 10s
 
   # Kafka monitoring
   - job_name: 'kafka'

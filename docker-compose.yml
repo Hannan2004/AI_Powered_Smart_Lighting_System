@@ -13,7 +13,7 @@ services:
     networks:
       - smart-lighting-net
 
-  # Kafka (Shared by both cybersecurity and weather services)
+  # Kafka (Shared by all services)
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
@@ -70,7 +70,7 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8001:8001"  # Different port to avoid conflicts
+      - "8001:8001"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_CONSUMER_GROUP: weather_agents
@@ -84,7 +84,36 @@ services:
     volumes:
       - ./logs/weather:/app/logs
 
-  # Redis (Shared caching for both services)
+  # Power Grid Management Agent
+  power-agent:
+    build:
+      context: ./backend/power
+      dockerfile: Dockerfile
+    container_name: power-agent
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_CONSUMER_GROUP: power_grid_agents
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      POWER_PORT: 8002
+      LOG_LEVEL: INFO
+      ENERGY_SAVINGS_TARGET: 15.0
+      RELIABILITY_TARGET: 99.5
+      EFFICIENCY_BASELINE: 95.0
+      PEAK_LOAD_THRESHOLD: 1000
+      MONTHLY_ENERGY_BUDGET: 50000
+      BUDGET_ALERT_THRESHOLD: 85
+    networks:
+      - smart-lighting-net
+    restart: unless-stopped
+    volumes:
+      - ./logs/power:/app/logs
+
+  # Redis (Shared caching for all services)
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -97,7 +126,7 @@ services:
       - redis-data:/data
     restart: unless-stopped
 
-  # PostgreSQL (Shared database for both services)
+  # PostgreSQL (Shared database for all services)
   postgres:
     image: postgres:15-alpine
     container_name: postgres
@@ -107,7 +136,7 @@ services:
       POSTGRES_DB: smart_lighting
       POSTGRES_USER: smart_user
       POSTGRES_PASSWORD: smart_pass
-      POSTGRES_MULTIPLE_DATABASES: cybersecurity_db,weather_intelligence_db
+      POSTGRES_MULTIPLE_DATABASES: cybersecurity_db,weather_intelligence_db,power_grid_db
     networks:
       - smart-lighting-net
     volumes:
@@ -115,7 +144,7 @@ services:
       - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     restart: unless-stopped
 
-  # Prometheus (Shared monitoring for both services)
+  # Prometheus (Shared monitoring for all services)
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -135,12 +164,12 @@ services:
       - smart-lighting-net
     restart: unless-stopped
 
-  # Grafana (Shared visualization for both services)
+  # Grafana (Shared visualization for all services)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"  # Keeping original port
+      - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin123
       GF_USERS_ALLOW_SIGN_UP: false
@@ -152,7 +181,25 @@ services:
       - smart-lighting-net
     restart: unless-stopped
 
-  # Kafka UI (For managing Kafka topics used by both services)
+  # Additional Grafana instance for Power Grid monitoring
+  grafana-power:
+    image: grafana/grafana:latest
+    container_name: grafana-power
+    ports:
+      - "3002:3000"  # Different port for power grid dashboards
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_SERVER_ROOT_URL: http://localhost:3002
+    volumes:
+      - grafana-power-data:/var/lib/grafana
+      - ./monitoring/grafana/power-dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - smart-lighting-net
+    restart: unless-stopped
+
+  # Kafka UI (For managing Kafka topics used by all services)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
@@ -182,3 +229,5 @@ volumes:
     name: smart-lighting-prometheus-data
   grafana-data:
     name: smart-lighting-grafana-data
+  grafana-power-data:
+    name: smart-lighting-grafana-power-data
