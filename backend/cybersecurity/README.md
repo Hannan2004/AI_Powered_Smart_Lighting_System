@@ -155,7 +155,7 @@ curl -X POST "http://localhost:8000/analyze/integrity" \
 ### Log Analysis
 ```bash
 # View agent-specific logs
-docker-compose logs -f cybersecurity-agent
+docker-compose logs -f cybersecurity
 
 # Monitor Kafka logs
 docker-compose logs -f kafka
