@@ -1,14 +1,13 @@
 import logging
-import asyncio
+import random
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage
-from langgraph import StateGraph, END
+from langchain_core.messages import HumanMessage
+from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 from ..config.settings import config
 from ..kafka.kafka_producer import weather_producer
-from ..kafka.kafka_consumer import weather_consumer
 
 logger = logging.getLogger(__name__)
 
@@ -376,7 +375,7 @@ class EnvironmentalSensorAgent:
                 "wind_direction": random.randint(0, 360),
                 "light_level": max(0, round(random.gauss(300, 100), 0)),  # Lux
                 "visibility": max(100, round(random.gauss(8000, 2000), 0)),  # Meters
-                "precipitation": max(0, round(random.exponential(0.1), 2)),  # mm/h
+                "precipitation": max(0, round(random.expovariate(1 / 0.1), 2)),  # mm/h
                 "air_quality_index": random.randint(20, 150),
                 "timestamp": datetime.now().isoformat(),
                 "zone_id": zone_id,

@@ -3,12 +3,11 @@ import asyncio
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage
-from langgraph import StateGraph, END
+from langchain_core.messages import HumanMessage
+from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 from ..config.settings import config
 from ..kafka.kafka_producer import weather_producer
-from ..kafka.kafka_consumer import weather_consumer
 
 logger = logging.getLogger(__name__)
 

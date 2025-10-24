@@ -1,21 +1,19 @@
 import logging
 import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from typing import Dict, Any, List
+from datetime import datetime
 from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage
-from langgraph import StateGraph, END
+from langchain_core.messages import HumanMessage
+from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 from ..config.settings import config
-from ..kafka.kafka_producer import weather_producer
-from ..kafka.kafka_consumer import weather_consumer
 
 # Import all weather agents
-from .weather_collection_forecast_agent import weather_collection_forecast_agent
-from .env_sensor_agent import environmental_sensor_agent
-from .weather_impact_analyzer_agent import weather_impact_analyzer_agent
-from .disaster_response_advisor_agent import disaster_response_advisor_agent
-from .reporting_agent import weather_reporting_agent
+from ..agents.weather_collection_forecast_agent import weather_collection_forecast_agent
+from ..agents.env_sensor_agent import environmental_sensor_agent
+from ..agents.weather_impact_analyzer_agent import weather_impact_analyzer_agent
+from ..agents.disaster_response_advisor_agent import disaster_response_advisor_agent
+from ..agents.reporting_agent import weather_reporting_agent
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,10 @@ pydantic
 kafka-python
 langchain
 langchain-groq
+langchain-core
 langgraph
 python-multipart
 prometheus-client
 python-dotenv
 httpx
+prometheus-fastapi-instrumentator

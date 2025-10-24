@@ -6,9 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from typing import Dict, Any, List, Optional
+from datetime import timedelta
 import json
 from datetime import datetime
 import threading
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Weather Intelligence System Imports
 from src.graph.weather_graph import (
@@ -25,8 +27,6 @@ from src.agents.disaster_response_advisor_agent import disaster_response_advisor
 from src.agents.reporting_agent import weather_reporting_agent
 
 from src.config.settings import config
-from src.kafka.kafka_producer import weather_producer
-from src.kafka.kafka_consumer import weather_consumer
 
 # Configure logging
 logging.basicConfig(
@@ -41,7 +41,6 @@ logger = logging.getLogger(__name__)
 
 # Global variables for background tasks
 weather_monitoring_task = None
-emergency_monitoring_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -77,6 +76,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # Add CORS middleware
 app.add_middleware(
@@ -451,15 +453,12 @@ async def initialize_kafka_connections():
 
 async def start_background_tasks():
     """Start background monitoring tasks"""
-    global weather_monitoring_task, emergency_monitoring_task
+    global weather_monitoring_task
     
     try:
         # Start weather monitoring task
         weather_monitoring_task = asyncio.create_task(weather_monitoring_loop())
-        
-        # Start emergency monitoring task
-        emergency_monitoring_task = asyncio.create_task(emergency_monitoring_loop())
-        
+               
         logger.info("Background tasks started successfully")
     except Exception as e:
         logger.error(f"Failed to start background tasks: {e}")
@@ -467,9 +466,9 @@ async def start_background_tasks():
 
 async def stop_background_tasks():
     """Stop background monitoring tasks"""
-    global weather_monitoring_task, emergency_monitoring_task
+    global weather_monitoring_task
     
-    tasks = [weather_monitoring_task, emergency_monitoring_task]
+    tasks = [weather_monitoring_task]
     
     for task in tasks:
         if task and not task.done():
@@ -500,23 +499,6 @@ async def weather_monitoring_loop():
         except Exception as e:
             logger.error(f"Error in weather monitoring loop: {e}")
             await asyncio.sleep(60)  # Wait 1 minute before retrying
-
-async def emergency_monitoring_loop():
-    """Background task for emergency condition monitoring"""
-    while True:
-        try:
-            # Check for emergency conditions every 2 minutes
-            emergency_conditions = await check_emergency_conditions()
-            if emergency_conditions.get("emergency_detected", False):
-                logger.warning("Emergency conditions detected, activating emergency response")
-                await execute_emergency_response()
-            
-            await asyncio.sleep(120)  # 2 minutes
-        except asyncio.CancelledError:
-            break
-        except Exception as e:
-            logger.error(f"Error in emergency monitoring loop: {e}")
-            await asyncio.sleep(30)  # Wait 30 seconds before retrying
 
 async def get_system_health() -> Dict[str, Any]:
     """Get overall system health status"""
@@ -642,15 +624,6 @@ async def get_real_time_weather_update() -> Dict[str, Any]:
         "type": "weather_update",
         "timestamp": datetime.now().isoformat(),
         "data": await get_current_weather_conditions()
-    }
-
-async def check_emergency_conditions() -> Dict[str, Any]:
-    """Check for emergency weather conditions"""
-    import random
-    return {
-        "emergency_detected": random.choice([True, False]),  # Random for demo
-        "threat_level": "low",
-        "check_time": datetime.now().isoformat()
     }
 
 if __name__ == "__main__":

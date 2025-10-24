@@ -3,6 +3,7 @@ uvicorn
 pydantic
 langchain
 langchain-groq
+langchain-core
 langgraph
 kafka-python
 requests
@@ -15,3 +16,4 @@ pytest
 pytest-asyncio
 pytest-mock
 structlog
+prometheus-fastapi-instrumentator

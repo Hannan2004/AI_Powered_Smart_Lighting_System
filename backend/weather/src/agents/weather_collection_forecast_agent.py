@@ -1,11 +1,12 @@
 import logging
-import requests
+import httpx
 import asyncio
+import time
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
-from langchain.schema import HumanMessage
-from langgraph import StateGraph, END
+from langchain_core.messages import HumanMessage
+from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 from ..config.settings import config
 from ..kafka.kafka_producer import weather_producer
@@ -28,12 +29,13 @@ class WeatherCollectionState(TypedDict):
 class WeatherCollectionForecastAgent:
     """
     LangGraph-based agent for collecting weather data and generating forecasts
-    using OpenWeather API and ML-based predictions
+    using TheWeatherAPI and ML-based predictions
     """
     
     def __init__(self):
-        self.openweather_config = config.get_openweather_config()
+        self.weatherapi_config = config.get_weatherapi_config()
         self.groq_config = config.get_groq_config()
+        self.timeout = config.AGENT_TIMEOUT
         self.llm = ChatGroq(
             groq_api_key=self.groq_config['api_key'],
             model_name=self.groq_config['model'],
@@ -129,13 +131,27 @@ class WeatherCollectionForecastAgent:
         """Fetch current weather data for all zones"""
         logger.info("Fetching current weather data")
         
-        for zone_id in state["zones_to_process"]:
-            try:
-                zone_config = config.get_zone_config(zone_id)
-                current_weather = self._fetch_current_weather(zone_config)
-                
-                if current_weather:
-                    state["current_weather"][zone_id] = current_weather
+        try:
+            results = []
+            for zone_id in state["zones_to_process"]:
+                try:
+                    zone_config = config.get_zone_config(zone_id)
+                    coordinates = zone_config['coordinates']
+                    # Call the synchronous function directly
+                    result = self._fetch_current_weather(zone_id, coordinates)
+                    results.append(result)
+                except Exception as e:
+                    results.append(e) # Append the exception to be processed below
+
+            # Process results
+            for i, result in enumerate(results):
+                zone_id = state["zones_to_process"][i]
+                if isinstance(result, Exception):
+                    error_msg = f"Error fetching current weather for {zone_id}: {str(result)}"
+                    logger.error(error_msg)
+                    state["errors"].append(error_msg)
+                elif result and not result.get("error"):
+                    state["current_weather"][zone_id] = result
                     state["api_responses"].append({
                         "zone_id": zone_id,
                         "type": "current_weather",
@@ -144,11 +160,11 @@ class WeatherCollectionForecastAgent:
                     })
                 else:
                     state["errors"].append(f"Failed to fetch current weather for {zone_id}")
-                    
-            except Exception as e:
-                error_msg = f"Error fetching current weather for {zone_id}: {str(e)}"
-                logger.error(error_msg)
-                state["errors"].append(error_msg)
+
+        except Exception as e:
+            error_msg = f"Error in weather fetching workflow: {str(e)}"
+            logger.error(error_msg)
+            state["errors"].append(error_msg)
         
         return state
     
@@ -156,13 +172,27 @@ class WeatherCollectionForecastAgent:
         """Fetch forecast data for all zones"""
         logger.info("Fetching forecast data")
         
-        for zone_id in state["zones_to_process"]:
-            try:
-                zone_config = config.get_zone_config(zone_id)
-                forecast_data = self._fetch_forecast_data(zone_config)
-                
-                if forecast_data:
-                    state["forecast_data"][zone_id] = forecast_data
+        try:
+            results = []
+            for zone_id in state["zones_to_process"]:
+                try:
+                    zone_config = config.get_zone_config(zone_id)
+                    coordinates = zone_config['coordinates']
+                    # Call the synchronous function directly
+                    result = self._fetch_forecast_data(zone_id, coordinates)
+                    results.append(result)
+                except Exception as e:
+                    results.append(e) # Append the exception to be processed below
+
+            # Process results
+            for i, result in enumerate(results):
+                zone_id = state["zones_to_process"][i]
+                if isinstance(result, Exception):
+                    error_msg = f"Error fetching forecast for {zone_id}: {str(result)}"
+                    logger.error(error_msg)
+                    state["errors"].append(error_msg)
+                elif result and len(result) > 0:
+                    state["forecast_data"][zone_id] = result
                     state["api_responses"].append({
                         "zone_id": zone_id,
                         "type": "forecast_data",
@@ -171,11 +201,11 @@ class WeatherCollectionForecastAgent:
                     })
                 else:
                     state["errors"].append(f"Failed to fetch forecast for {zone_id}")
-                    
-            except Exception as e:
-                error_msg = f"Error fetching forecast for {zone_id}: {str(e)}"
-                logger.error(error_msg)
-                state["errors"].append(error_msg)
+
+        except Exception as e:
+            error_msg = f"Error in forecast fetching workflow: {str(e)}"
+            logger.error(error_msg)
+            state["errors"].append(error_msg)
         
         return state
     
@@ -330,99 +360,140 @@ class WeatherCollectionForecastAgent:
         return state
     
     # Helper methods (same as before but adapted for LangGraph)
-    def _fetch_current_weather(self, zone_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Fetch current weather data from OpenWeather API"""
+    def _fetch_current_weather(self, zone_id: str, coordinates: Dict[str, float]) -> Dict[str, Any]:
+        """Fetch current weather data for a specific zone using WeatherAPI."""
+        location = f"{coordinates['lat']},{coordinates['lon']}"
+        api_key = self.weatherapi_config["api_key"]
+        base_url = self.weatherapi_config["base_url"]
+        endpoint = f"{base_url}/current.json" # Use current.json for current weather
+
+        params = {
+            "key": api_key,
+            "q": location,
+            "aqi": "no" # Air Quality Index (optional, set to 'yes' if needed)
+        }
+
         try:
-            coordinates = zone_config['coordinates']
-            url = f"{self.openweather_config['base_url']}/weather"
-            
-            params = {
-                'lat': coordinates['lat'],
-                'lon': coordinates['lon'],
-                'appid': self.openweather_config['api_key'],
-                'units': self.openweather_config['units']
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            return {
-                'temperature': data['main']['temp'],
-                'humidity': data['main']['humidity'],
-                'pressure': data['main']['pressure'],
-                'wind_speed': data['wind']['speed'],
-                'wind_direction': data['wind'].get('deg', 0),
-                'visibility': data.get('visibility', 10000),
-                'weather_condition': data['weather'][0]['main'],
-                'weather_description': data['weather'][0]['description'],
-                'cloudiness': data['clouds']['all'],
-                'precipitation': data.get('rain', {}).get('1h', 0) + data.get('snow', {}).get('1h', 0),
-                'timestamp': datetime.now().isoformat(),
-                'source': 'openweather_current'
-            }
-            
-        except Exception as e:
-            logger.error(f"Error fetching current weather: {e}")
-            return None
-    
-    def _fetch_forecast_data(self, zone_config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Fetch forecast data from OpenWeather API"""
-        try:
-            coordinates = zone_config['coordinates']
-            url = f"{self.openweather_config['forecast_url']}"
-            
-            params = {
-                'lat': coordinates['lat'],
-                'lon': coordinates['lon'],
-                'appid': self.openweather_config['api_key'],
-                'units': self.openweather_config['units'],
-                'cnt': min(config.FORECAST_HOURS // 3, 40)
-            }
-            
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            
-            forecast_periods = []
-            for item in data['list']:
-                period = {
-                    'datetime': item['dt_txt'],
-                    'temperature': item['main']['temp'],
-                    'humidity': item['main']['humidity'],
-                    'wind_speed': item['wind']['speed'],
-                    'weather_condition': item['weather'][0]['main'],
-                    'precipitation': item.get('rain', {}).get('3h', 0) + item.get('snow', {}).get('3h', 0),
-                    'precipitation_probability': item.get('pop', 0) * 100
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.get(endpoint, params=params)
+                response.raise_for_status() # Raise exception for bad status codes
+                data = response.json()
+                logger.info(f"Successfully fetched current weather for {zone_id} from WeatherAPI")
+                # --- PARSE WeatherAPI RESPONSE ---
+                # Example parsing (adjust based on actual needs)
+                return {
+                    "timestamp": data.get("location", {}).get("localtime_epoch"),
+                    "temperature": data.get("current", {}).get("temp_c"),
+                    "humidity": data.get("current", {}).get("humidity"),
+                    "wind_speed": data.get("current", {}).get("wind_kph") * 1000 / 3600, # Convert kph to m/s
+                    "condition": data.get("current", {}).get("condition", {}).get("text"),
+                    "pressure": data.get("current", {}).get("pressure_mb"),
+                    "visibility": data.get("current", {}).get("vis_km") * 1000, # Convert km to meters
+                    "precipitation": data.get("current", {}).get("precip_mm"), # Precipitation in mm (might need conversion if API gives rate)
+                    "cloud_cover": data.get("current", {}).get("cloud"),
+                    "uv_index": data.get("current", {}).get("uv"),
+                    "zone_id": zone_id,
+                    "raw_data": data # Store raw data if needed later
                 }
-                forecast_periods.append(period)
-            
-            return {
-                'city': data['city']['name'],
-                'forecast_periods': forecast_periods,
-                'forecast_hours': len(forecast_periods) * 3,
-                'timestamp': datetime.now().isoformat(),
-                'source': 'openweather_forecast'
-            }
-            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error fetching current weather for {zone_id}: {e.response.status_code} - {e.response.text}")
+        except httpx.RequestError as e:
+            logger.error(f"Network error fetching current weather for {zone_id}: {e}")
         except Exception as e:
-            logger.error(f"Error fetching forecast data: {e}")
-            return None
+            logger.error(f"Error processing current weather for {zone_id}: {e}", exc_info=True)
+        return {"zone_id": zone_id, "error": True} # Indicate failure
+    
+    def _fetch_forecast_data(self, zone_id: str, coordinates: Dict[str, float]) -> List[Dict[str, Any]]:
+        """Fetch forecast data for a specific zone using WeatherAPI."""
+        location = f"{coordinates['lat']},{coordinates['lon']}"
+        api_key = self.weatherapi_config["api_key"]
+        base_url = self.weatherapi_config["base_url"]
+        endpoint = f"{base_url}/forecast.json" # Use forecast.json for forecast
+
+        # Calculate forecast days needed based on FORECAST_HOURS (WeatherAPI max is usually 10-14 days)
+        days_needed = (config.FORECAST_HOURS + 23) // 24 # Round up to nearest day
+        days_to_fetch = min(days_needed, 10) # Limit to WeatherAPI's typical max (e.g., 10 days)
+
+        params = {
+            "key": api_key,
+            "q": location,
+            "days": days_to_fetch,
+            "aqi": "no",
+            "alerts": "yes" # Include weather alerts
+        }
+
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.get(endpoint, params=params)
+                response.raise_for_status()
+                data = response.json()
+                logger.info(f"Successfully fetched forecast data for {zone_id} from WeatherAPI")
+
+                # --- PARSE WeatherAPI FORECAST RESPONSE ---
+                forecast_list = []
+                forecast_days = data.get("forecast", {}).get("forecastday", [])
+
+                for day in forecast_days:
+                    for hour_data in day.get("hour", []):
+                        # Only include hours within the desired FORECAST_HOURS range
+                        timestamp = hour_data.get("time_epoch")
+                        if timestamp and timestamp <= time.time() + config.FORECAST_HOURS * 3600:
+                            forecast_list.append({
+                                "timestamp": timestamp,
+                                "temperature": hour_data.get("temp_c"),
+                                "humidity": hour_data.get("humidity"),
+                                "wind_speed": hour_data.get("wind_kph") * 1000 / 3600, # kph to m/s
+                                "condition": hour_data.get("condition", {}).get("text"),
+                                "pressure": hour_data.get("pressure_mb"),
+                                "visibility": hour_data.get("vis_km") * 1000, # km to meters
+                                "precipitation": hour_data.get("precip_mm"), # mm
+                                "cloud_cover": hour_data.get("cloud"),
+                                "uv_index": hour_data.get("uv"),
+                                "chance_of_rain": hour_data.get("chance_of_rain"), # Percentage
+                                "chance_of_snow": hour_data.get("chance_of_snow"), # Percentage
+                                "zone_id": zone_id,
+                            })
+                # --- PARSE ALERTS ---
+                alerts = []
+                for alert in data.get("alerts", {}).get("alert", []):
+                     alerts.append({
+                        "headline": alert.get("headline"),
+                        "event": alert.get("event"),
+                        "description": alert.get("desc"),
+                        "effective": alert.get("effective"),
+                        "expires": alert.get("expires"),
+                        "severity": alert.get("severity"),
+                        "urgency": alert.get("urgency"),
+                    })
+                # Add alerts to the state or handle them appropriately
+                # For now, just logging them
+                if alerts:
+                     logger.warning(f"Weather alerts received for {zone_id}: {alerts}")
+
+
+                return forecast_list
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error fetching forecast for {zone_id}: {e.response.status_code} - {e.response.text}")
+        except httpx.RequestError as e:
+            logger.error(f"Network error fetching forecast for {zone_id}: {e}")
+        except Exception as e:
+            logger.error(f"Error processing forecast for {zone_id}: {e}", exc_info=True)
+        return [] # Return empty list on failure
     
     def _calculate_confidence_score(self, current_weather: Optional[Dict[str, Any]], 
-                                  forecast_data: Optional[Dict[str, Any]]) -> float:
+                                  forecast_data: Optional[List[Dict[str, Any]]]) -> float:
         """Calculate confidence score for weather predictions"""
         base_confidence = 0.5
         
-        if current_weather:
+        if current_weather and not current_weather.get("error"):
             base_confidence += 0.2
-            if current_weather.get('weather_condition') in ['Clear', 'Clouds']:
+            if current_weather.get('condition') in ['Clear', 'Sunny', 'Partly cloudy']:
                 base_confidence += 0.1
         
-        if forecast_data:
+        if forecast_data and len(forecast_data) > 0:
             base_confidence += 0.2
-            periods = forecast_data.get('forecast_periods', [])
-            if len(periods) >= 8:
+            if len(forecast_data) >= 8:
                 base_confidence += 0.1
         
         return min(max(base_confidence, 0.0), 1.0)
@@ -437,7 +508,7 @@ class WeatherCollectionForecastAgent:
             
             zone_summary = f"""
             Zone {zone_id}:
-            - Current: {current.get('weather_condition', 'Unknown')} ({current.get('temperature', 'N/A')}°C)
+            - Current: {current.get('condition', 'Unknown')} ({current.get('temperature', 'N/A')}°C)
             - Visibility: {current.get('visibility', 'Unknown')}m
             - Wind: {current.get('wind_speed', 'Unknown')}m/s
             - Precipitation: {current.get('precipitation', 0)}mm/h
@@ -452,13 +523,13 @@ class WeatherCollectionForecastAgent:
         visibility = weather_data.get('visibility', 10000)
         wind_speed = weather_data.get('wind_speed', 0)
         precipitation = weather_data.get('precipitation', 0)
-        condition = weather_data.get('weather_condition', '')
+        condition = weather_data.get('condition', '')
         
         return (
             visibility < config.VISIBILITY_THRESHOLD or
             wind_speed > config.WIND_SPEED_THRESHOLD or
             precipitation > config.PRECIPITATION_THRESHOLD or
-            condition in ['Thunderstorm', 'Tornado', 'Fog']
+            condition in ['Thunderstorm', 'Tornado', 'Fog', 'Heavy rain', 'Storm']
         )
     
     def _determine_alert_details(self, weather_data: Dict[str, Any]) -> tuple:
@@ -466,14 +537,14 @@ class WeatherCollectionForecastAgent:
         visibility = weather_data.get('visibility', 10000)
         wind_speed = weather_data.get('wind_speed', 0)
         precipitation = weather_data.get('precipitation', 0)
-        condition = weather_data.get('weather_condition', '')
+        condition = weather_data.get('condition', '')
         
         # Determine alert type
         if visibility < config.VISIBILITY_THRESHOLD:
             alert_type = "low_visibility"
         elif condition == 'Fog':
             alert_type = "fog"
-        elif condition in ['Thunderstorm', 'Tornado']:
+        elif condition in ['Thunderstorm', 'Tornado', 'Storm']:
             alert_type = "storm"
         else:
             alert_type = "weather_change"

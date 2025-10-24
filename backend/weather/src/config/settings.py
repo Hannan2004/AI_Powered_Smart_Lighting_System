@@ -9,7 +9,8 @@ class WeatherConfig:
     """Configuration class for weather intelligence agents"""
     
     # API Keys
-    OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "")
+    WEATHERAPI_API_KEY: str = os.getenv("WEATHERAPI_API_KEY")
+    WEATHERAPI_BASE_URL: str = os.getenv("WEATHERAPI_BASE_URL", "https://api.weatherapi.com/v1")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
     # OpenWeather API Configuration
@@ -18,7 +19,7 @@ class WeatherConfig:
     OPENWEATHER_UNITS: str = os.getenv("OPENWEATHER_UNITS", "metric")
     
     # Groq LLM Configuration  
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     GROQ_TEMPERATURE: float = float(os.getenv("GROQ_TEMPERATURE", "0.1"))
     GROQ_MAX_TOKENS: int = int(os.getenv("GROQ_MAX_TOKENS", "1024"))
     
@@ -75,6 +76,9 @@ class WeatherConfig:
         "snow": 4,
         "extreme_weather": 7
     }
+
+    # Add this line with your other interval settings
+    GRAPH_RUN_INTERVAL: int = int(os.getenv("GRAPH_RUN_INTERVAL", "300"))  # 5 minutes
     
     # Emergency Response Thresholds
     EMERGENCY_WIND_SPEED: float = float(os.getenv("EMERGENCY_WIND_SPEED", "25"))  # m/s
@@ -103,7 +107,7 @@ class WeatherConfig:
     def validate_config(cls) -> bool:
         """Validate essential configuration"""
         required_keys = [
-            cls.OPENWEATHER_API_KEY,
+            cls.WEATHERAPI_API_KEY,
             cls.GROQ_API_KEY
         ]
         
@@ -134,13 +138,11 @@ class WeatherConfig:
         }
     
     @classmethod
-    def get_openweather_config(cls) -> Dict[str, Any]:
-        """Get OpenWeather API configuration"""
+    def get_weatherapi_config(cls) -> Dict[str, Any]:
+        """Get WeatherAPI configuration"""
         return {
-            "api_key": cls.OPENWEATHER_API_KEY,
-            "base_url": cls.OPENWEATHER_BASE_URL,
-            "forecast_url": cls.OPENWEATHER_FORECAST_URL,
-            "units": cls.OPENWEATHER_UNITS
+            "api_key": cls.WEATHERAPI_API_KEY,
+            "base_url": cls.WEATHERAPI_BASE_URL
         }
     
     @classmethod

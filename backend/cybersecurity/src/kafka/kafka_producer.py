@@ -31,7 +31,7 @@ class CybersecurityKafkaProducer:
                 retries=3,
                 max_in_flight_requests_per_connection=1,
                 enable_idempotence=True,
-                compression_type='gzip'
+                compression_type='none'
             )
             logger.info("Cybersecurity Kafka producer initialized")
             

@@ -7,7 +7,7 @@ from datetime import datetime
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 from ..config.settings import config
-from ..graph.weather_graph import weather_graph
+import src.graph.weather_graph as weather_graph
 
 logger = logging.getLogger(__name__)
 

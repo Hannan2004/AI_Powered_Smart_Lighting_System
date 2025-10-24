@@ -12,7 +12,7 @@ class PowerGridConfig:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
     # Groq Configuration
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama3-8b-8192")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
     GROQ_TEMPERATURE: float = float(os.getenv("GROQ_TEMPERATURE", "0.1"))
     GROQ_MAX_TOKENS: int = int(os.getenv("GROQ_MAX_TOKENS", "1024"))
     

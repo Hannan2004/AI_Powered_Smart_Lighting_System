@@ -8,21 +8,22 @@ import logging
 import uvicorn
 import asyncio
 from contextlib import asynccontextmanager
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import power grid components
-from .graph.power_graph import (
+from src.graph.power_graph import (
     power_grid_graph,
     execute_power_grid_workflow,
     get_workflow_status,
     trigger_emergency_response
 )
-from .agents.energy_load_forecaster_agent import energy_load_forecaster_agent
-from .agents.power_outage_detection_agent import power_outage_detection_agent
-from .agents.energy_rerouting_agent import energy_rerouting_agent
-from .agents.energy_optimization_agent import energy_optimization_agent
-from .agents.power_grid_reporting_agent import power_grid_reporting_agent
-from .config.settings import config
-from .kafka.kafka_producer import power_producer
+from src.agents.energy_load_forecaster_agent import energy_load_forecaster_agent
+from src.agents.energy_optimization_agent import energy_optimization_agent
+from src.agents.power_outage_detection_agent import power_outage_detection_agent
+from src.agents.energy_rerouting_agent import energy_rerouting_agent
+from src.agents.power_grid_reporting_agent import power_grid_reporting_agent
+from src.config.settings import config
+from src.kafka.kafka_producer import power_producer
 
 # Configure logging
 logging.basicConfig(
@@ -95,7 +96,7 @@ async def lifespan(app: FastAPI):
     # Startup tasks
     try:
         # Test Kafka connection
-        test_result = power_producer.send_system_status({
+        test_result = power_producer.publish_system_log({
             "service": "power_grid_service",
             "status": "starting",
             "timestamp": datetime.now().isoformat()
@@ -123,7 +124,7 @@ async def lifespan(app: FastAPI):
     logger.info("🛑 Shutting down Power Grid Management Service")
     
     # Send shutdown notification
-    power_producer.send_system_status({
+    power_producer.publish_system_log({
         "service": "power_grid_service",
         "status": "shutdown",
         "timestamp": datetime.now().isoformat()
@@ -138,6 +139,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # Add CORS middleware
 app.add_middleware(

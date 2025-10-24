@@ -12,3 +12,6 @@ asyncio
 structlog
 pytest
 pytest-asyncio
+langchain-core
+pandas
+prometheus-fastapi-instrumentator

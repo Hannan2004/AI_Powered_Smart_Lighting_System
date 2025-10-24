@@ -5,7 +5,6 @@ import logging
 import math
 from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolExecutor
 
 from ..config.settings import config
 from ..kafka.kafka_producer import power_producer

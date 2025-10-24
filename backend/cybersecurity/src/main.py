@@ -6,15 +6,16 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
+from prometheus_fastapi_instrumentator import Instrumentator
 
-from .graph.cybersecurity_graph import cybersecurity_graph
-from .kafka.kafka_consumer import cybersecurity_consumer
-from .kafka.kafka_producer import cybersecurity_producer
-from .agents.data_integrity_agent import data_integrity_agent
-from .agents.threat_detection_agent import threat_detection_agent
-from .agents.intrusion_response_agent import intrusion_response_agent
-from .agents.reporting_agent import reporting_agent
-from .config.settings import config
+from src.graph.cybersecurity_graph import cybersecurity_graph
+from src.kafka.kafka_consumer import cybersecurity_consumer
+from src.kafka.kafka_producer import cybersecurity_producer
+from src.agents.data_integrity_agent import data_integrity_agent
+from src.agents.threat_detection_agent import threat_detection_agent
+from src.agents.intrusion_response_agent import intrusion_response_agent
+from src.agents.reporting_agent import reporting_agent
+from src.config.settings import config
 
 # Configure logging
 logging.basicConfig(
@@ -87,6 +88,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add Prometheus metrics instrumentation
+Instrumentator().instrument(app).expose(app)
 
 # Add CORS middleware
 app.add_middleware(

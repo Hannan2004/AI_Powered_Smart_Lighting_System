@@ -30,7 +30,7 @@ class PowerGridKafkaProducer:
                 retries=3,
                 retry_backoff_ms=1000,
                 request_timeout_ms=30000,
-                compression_type='snappy'
+                compression_type=None,
             )
             logger.info("Power Grid Kafka producer initialized successfully")
         except Exception as e:
