@@ -111,6 +111,25 @@ services:
     volumes:
       - ./logs/power:/app/logs
 
+  coordinator-agent:
+    build:
+      context: ./backend/coordinator
+    container_name: coordinator-agent
+    ports:
+      - "8004:8004"
+    env_file:
+      - ./backend/coordinator/.env.example
+      - ./.env # Also load shared .env
+    environment:
+      - KAFKA_BROKER_URL=kafka:29092
+      # Add any other environment overrides here
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - smart-lighting-net
+    restart: on-failure
+    
   # Redis (Shared caching for all services)
   redis:
     image: redis:7-alpine

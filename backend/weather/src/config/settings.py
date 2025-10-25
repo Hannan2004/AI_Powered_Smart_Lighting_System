@@ -31,6 +31,7 @@ class WeatherConfig:
     KAFKA_WEATHER_REPORTS_TOPIC: str = os.getenv("KAFKA_WEATHER_REPORTS_TOPIC", "weather_reports")
     KAFKA_WEATHER_EMERGENCY_TOPIC: str = os.getenv("KAFKA_WEATHER_EMERGENCY_TOPIC", "weather_emergency")
     KAFKA_CONSUMER_GROUP: str = os.getenv("KAFKA_WEATHER_CONSUMER_GROUP", "weather_agents")
+    KAFKA_TOPIC_COORDINATOR_COMMANDS: str = "coordinator_commands"
     
     # Service Configuration (No conflicts with cybersecurity)
     HOST: str = os.getenv("WEATHER_HOST", "0.0.0.0")

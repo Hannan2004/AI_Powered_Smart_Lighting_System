@@ -32,6 +32,11 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s # Corrected 'scrap_interval' to 'scrape_interval'
     scrape_timeout: 10s
+  
+  - job_name: 'coordinator-agent'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['coordinator-agent:8004']
 
   # Note: Kafka, Redis, Postgres monitoring might need specific exporters
   # configured separately if you want detailed metrics from them.

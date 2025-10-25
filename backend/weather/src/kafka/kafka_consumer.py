@@ -29,7 +29,8 @@ class WeatherKafkaConsumer:
             'weather_data', 
             'weather_forecasts',
             'weather_emergency',
-            'lighting_commands'  # Listen to lighting system responses
+            'lighting_commands',
+            'coordinator_commands'  # Listen to lighting system responses
         ]
         
         # Message handlers for different event types
@@ -132,6 +133,23 @@ class WeatherKafkaConsumer:
                 time.sleep(1)
         
         logger.info("Weather message consumption loop ended")
+
+    def _handle_coordinator_command(self, command: Dict[str, Any]):
+        logger.info(f"Received coordinator command: {command}")
+        target = command.get("target_service")
+        payload = command.get("payload", {})
+        mode = payload.get("mode")
+
+        # Check if this command is for this service
+        if target != "all" and target != "weather":
+            logger.info(f"Coordinator command not targeted at 'weather' service. Ignoring.")
+            return
+
+        logger.warn(f"EXECUTING COORDINATOR COMMAND: Set mode to {mode}")
+        logger.warn(f"Reason: {payload.get('reason')}")
+        logger.warn(f"Full Payload: {payload}")
+        # Log this event using your existing log function
+        self._log_event("coordinator_command", command)
     
     def _process_message(self, message):
         """Process individual Kafka message"""
@@ -144,7 +162,10 @@ class WeatherKafkaConsumer:
             
             logger.debug(f"Processing weather message from topic {topic}: {key}")
             
-            # Validate message structure
+            if topic == config.KAFKA_TOPIC_COORDINATOR_COMMANDS:
+                self._handle_coordinator_command(value)
+                return
+            
             if not isinstance(value, dict):
                 logger.warning(f"Invalid weather message format from {topic}: {type(value)}")
                 return

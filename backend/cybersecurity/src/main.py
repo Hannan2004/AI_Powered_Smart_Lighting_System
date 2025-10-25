@@ -1,8 +1,7 @@
 import logging
-import asyncio
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime

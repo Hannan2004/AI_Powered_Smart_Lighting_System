@@ -95,18 +95,6 @@ async def lifespan(app: FastAPI):
     
     # Startup tasks
     try:
-        # Test Kafka connection
-        test_result = power_producer.publish_system_log({
-            "service": "power_grid_service",
-            "status": "starting",
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        if test_result:
-            logger.info("✅ Kafka connection established")
-        else:
-            logger.warning("⚠️ Kafka connection failed - service will continue without messaging")
-        
         # Initialize agents
         logger.info("🔧 Initializing power grid agents...")
         
@@ -119,16 +107,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Startup failed: {e}")
     
     yield
-    
-    # Shutdown tasks
-    logger.info("🛑 Shutting down Power Grid Management Service")
-    
-    # Send shutdown notification
-    power_producer.publish_system_log({
-        "service": "power_grid_service",
-        "status": "shutdown",
-        "timestamp": datetime.now().isoformat()
-    })
     
     logger.info("✅ Power Grid Management Service shutdown complete")
 

@@ -12,7 +12,7 @@ This smart lighting ecosystem consists of three specialized AI agent services th
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  Cybersecurity  │    │    Weather      │    │   Power Grid    │
 │     Service     │    │  Intelligence   │    │   Management    │
-│    (Port 8000)  │    │   (Port 8001)   │    │   (Port 8002)   │
+│    (Port 8003)  │    │   (Port 8001)   │    │   (Port 8002)   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -71,7 +71,7 @@ This smart lighting ecosystem consists of three specialized AI agent services th
 
 | Service | API Docs | Monitoring Dashboard |
 |---------|----------|---------------------|
-| **Cybersecurity** | http://localhost:8000/docs | http://localhost:3000 |
+| **Cybersecurity** | http://localhost:8003/docs | http://localhost:3000 |
 | **Weather Intelligence** | http://localhost:8001/docs | http://localhost:3001 |
 | **Power Grid Management** | http://localhost:8002/docs | http://localhost:3002 |
 
@@ -101,12 +101,12 @@ docker-compose ps
 ### 3. Access Services
 ```bash
 # Check system health
-curl http://localhost:8000/health  # Cybersecurity
+curl http://localhost:8003/health  # Cybersecurity
 curl http://localhost:8001/health  # Weather
 curl http://localhost:8002/health  # Power Grid
 
 # View API documentation
-open http://localhost:8000/docs    # Cybersecurity API
+open http://localhost:8003/docs    # Cybersecurity API
 open http://localhost:8001/docs    # Weather API  
 open http://localhost:8002/docs    # Power Grid API
 ```
@@ -135,6 +135,11 @@ open http://localhost:8002/docs    # Power Grid API
 
 ### Service Control
 ```bash
+
+#initially to build the images in the container
+docker-compose build
+
+docker-compose up
 # Start specific services
 docker-compose up cybersecurity-agent weather-agent power-agent
 
@@ -153,7 +158,7 @@ docker-compose down
 ### System Status
 ```bash
 # Check all service health
-curl http://localhost:8000/system/status
+curl http://localhost:8003/system/status
 curl http://localhost:8001/system/status  
 curl http://localhost:8002/system/status
 

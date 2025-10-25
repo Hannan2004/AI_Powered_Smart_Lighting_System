@@ -20,6 +20,7 @@ class CybersecurityConfig:
     KAFKA_THREAT_REPORTS_TOPIC: str = os.getenv("KAFKA_THREAT_REPORTS_TOPIC", "threat_reports")
     KAFKA_INCIDENT_REPORTS_TOPIC: str = os.getenv("KAFKA_INCIDENT_REPORTS_TOPIC", "incident_reports")
     KAFKA_CONSUMER_GROUP: str = os.getenv("KAFKA_CONSUMER_GROUP", "cybersecurity_agents")
+    KAFKA_TOPIC_COORDINATOR_COMMANDS: str = "coordinator_commands"
     
     # Agent Configuration
     AGENT_TIMEOUT: int = int(os.getenv("AGENT_TIMEOUT", "30"))

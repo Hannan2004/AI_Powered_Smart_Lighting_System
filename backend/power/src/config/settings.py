@@ -30,6 +30,7 @@ class PowerGridConfig:
     KAFKA_ENERGY_REROUTING_TOPIC: str = os.getenv("KAFKA_ENERGY_REROUTING_TOPIC", "energy_rerouting")
     KAFKA_POWER_REPORTS_TOPIC: str = os.getenv("KAFKA_POWER_REPORTS_TOPIC", "power_reports")
     KAFKA_GRID_ALERTS_TOPIC: str = os.getenv("KAFKA_GRID_ALERTS_TOPIC", "grid_alerts")
+    KAFKA_TOPIC_COORDINATOR_COMMANDS: str = "coordinator_commands"
     
     # Zone Configuration
     DEFAULT_ZONES: List[str] = [

@@ -4,7 +4,6 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel
 from kafka import KafkaConsumer
 from ..config.settings import config
