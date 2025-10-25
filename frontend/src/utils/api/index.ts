@@ -1,0 +1,8 @@
+// Central export for API functions
+// This makes imports cleaner in components
+
+export * from './cybersecurity';
+export * from './weather';
+export * from './power';
+
+// You might add a base fetch function here later if needed
