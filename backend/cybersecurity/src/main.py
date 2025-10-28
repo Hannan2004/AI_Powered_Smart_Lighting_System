@@ -166,6 +166,9 @@ async def lifespan(app: FastAPI):
         cybersecurity_consumer.stop_consuming()
         cybersecurity_producer.close()
         logger.info("Kafka connections closed")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {e}")
+
 # Background task for periodic updates
 async def periodic_updates():
     """Send periodic status and metrics updates to WebSocket clients"""
@@ -226,6 +229,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "cybersecurity-agent",
+        "timestamp": datetime.now().isoformat()
+    }
 
 # WebSocket endpoint for real-time updates
 @app.websocket("/ws")
