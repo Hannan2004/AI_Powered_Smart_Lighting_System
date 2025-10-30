@@ -1,8 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { getCybersecurityAgentStatus, triggerCybersecurityAnalysis, getCybersecurityMetrics } from '@/utils/api';
+
 import Card from '@/components/shared/Card';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { ShieldCheck, Activity, AlertTriangle } from 'lucide-react';
+import CyberMap from './CyberMap';
+import ZoneStatusPanel from './ZoneStatusPanel';
+import AttackSimulator from './AttackSimulator';
 
 const CybersecurityDashboard: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
@@ -58,25 +63,27 @@ const CybersecurityDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Cybersecurity Agent</h2>
-
-      {error && <Card title="Error" className="bg-red-100 border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-200">{error}</Card>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-         <Card title="Agent Status">
-          {isLoadingStatus ? <LoadingSpinner /> : (
-            status ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(status.agents || status, null, 2)}</pre> : <p>No status data</p>
-          )}
-        </Card>
-
-        <Card title="Security Metrics">
-          {isLoadingMetrics ? <LoadingSpinner /> : (
-            metrics ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(metrics.current_status || metrics.metrics || metrics, null, 2)}</pre> : <p>No metrics data</p>
-          )}
-        </Card>
-
-         <Card title="Run Analysis">
+    <div className="flex flex-col lg:flex-row gap-8 w-full">
+      {/* Left: Main Info & Map */}
+      <div className="flex-1 flex flex-col gap-6">
+        <div className="flex items-center gap-3 mb-2">
+          <ShieldCheck className="text-blue-400 w-8 h-8" />
+          <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Cybersecurity Dashboard</h2>
+        </div>
+        {error && <Card title="Error" className="bg-red-100 border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-200">{error}</Card>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card title={<span className="flex items-center gap-2"><Activity className="text-green-400 w-5 h-5" /> Agent Status</span>}>
+            {isLoadingStatus ? <LoadingSpinner /> : (
+              status ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(status.agents || status, null, 2)}</pre> : <p>No status data</p>
+            )}
+          </Card>
+          <Card title={<span className="flex items-center gap-2"><AlertTriangle className="text-yellow-400 w-5 h-5" /> Security Metrics</span>}>
+            {isLoadingMetrics ? <LoadingSpinner /> : (
+              metrics ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(metrics.current_status || metrics.metrics || metrics, null, 2)}</pre> : <p>No metrics data</p>
+            )}
+          </Card>
+        </div>
+        <Card title="Run Analysis">
           <button
             onClick={handleRunAnalysis}
             disabled={isLoadingAnalysis}
@@ -84,19 +91,21 @@ const CybersecurityDashboard: React.FC = () => {
           >
             {isLoadingAnalysis ? 'Running...' : 'Trigger Full Analysis'}
           </button>
-         </Card>
-      </div>
-
-       {analysisResult && (
-        <Card title={`Analysis Result (${analysisResult?.analysis_id})`}>
-          {isLoadingAnalysis ? <LoadingSpinner /> : (
-             <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(analysisResult.result || analysisResult, null, 2)}</pre>
-           )}
         </Card>
-      )}
-
-      {/* Add more specific widgets here later */}
-      {/* e.g., <ThreatLevelWidget />, <RecentEventsWidget /> */}
+        <CyberMap />
+        {analysisResult && (
+          <Card title={`Analysis Result (${analysisResult?.analysis_id})`}>
+            {isLoadingAnalysis ? <LoadingSpinner /> : (
+              <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(analysisResult.result || analysisResult, null, 2)}</pre>
+            )}
+          </Card>
+        )}
+      </div>
+      {/* Right: Side Panels */}
+      <div className="w-full lg:w-[350px] flex flex-col gap-6">
+        <ZoneStatusPanel />
+        <AttackSimulator />
+      </div>
     </div>
   );
 };

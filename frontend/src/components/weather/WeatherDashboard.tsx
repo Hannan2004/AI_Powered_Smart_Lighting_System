@@ -1,8 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { getWeatherSystemStatus, getCurrentWeatherData, getWeatherAlerts } from '@/utils/api';
+
 import Card from '@/components/shared/Card';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import { CloudSun, AlertTriangle, Thermometer } from 'lucide-react';
+import ZoneControlPanel from './ZoneControlPanel';
+import LiveAnalysisPanel from './LiveAnalysisPanel';
+import AgentLogPanel from './AgentLogPanel';
 
 const WeatherDashboard: React.FC = () => {
     const [status, setStatus] = useState<any>(null);
@@ -46,55 +51,60 @@ const WeatherDashboard: React.FC = () => {
 
     }, []);
 
+
     if (isLoading) {
         return <LoadingSpinner />;
     }
 
     return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Weather Agent</h2>
-
-            {error && <Card title="Error" className="bg-red-100 border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-200">{error}</Card>}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Card title="System Status">
-                    {status ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(status.system_status || status.agent_statuses || status, null, 2)}</pre> : <p>No status data</p>}
-                </Card>
-
-                <Card title="Current Conditions Overview">
-                   {currentWeather?.success && currentWeather?.current_conditions ? (
-                     <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(currentWeather.current_conditions, null, 2)}</pre>
-                    ) : currentWeather ? (
-                     <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(currentWeather, null, 2)}</pre>
-                    ): (
-                     <p>No current weather data</p>
-                    )}
-                </Card>
-
-                 <Card title="Active Alerts">
-                    {alerts.length > 0 ? (
-                        <ul className='space-y-1 text-sm'>
-                            {alerts.slice(0, 5).map((alert: any, index: number) => ( // Show max 5 alerts
-                                <li key={alert.alert_id || index} className={`p-1 rounded ${alert.severity === 'critical' || alert.severity === 'high' ? 'bg-red-100 dark:bg-red-900' : 'bg-yellow-100 dark:bg-yellow-900'}`}>
-                                    [{alert.severity?.toUpperCase()}] {alert.alert_type} in {alert.zone_id}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">No active alerts.</p>
-                    )}
-                 </Card>
+        <div className="flex flex-col lg:flex-row gap-8 w-full">
+            {/* Left: Main Info & Controls */}
+            <div className="flex-1 flex flex-col gap-6">
+                <div className="flex items-center gap-3 mb-2">
+                    <CloudSun className="text-yellow-400 w-8 h-8" />
+                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Weather Agent Dashboard</h2>
+                </div>
+                {error && <Card title="Error" className="bg-red-100 border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-200">{error}</Card>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card title={<span className="flex items-center gap-2"><Thermometer className="text-blue-400 w-5 h-5" /> System Status</span>}>
+                        {status ? <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(status.system_status || status.agent_statuses || status, null, 2)}</pre> : <p>No status data</p>}
+                    </Card>
+                    <Card title={<span className="flex items-center gap-2"><CloudSun className="text-yellow-400 w-5 h-5" /> Current Conditions</span>}>
+                        {currentWeather?.success && currentWeather?.current_conditions ? (
+                            <div className="flex flex-col gap-1">
+                                <span className="text-2xl font-bold text-blue-400">{currentWeather.current_conditions.temp_c ?? '--'}°C</span>
+                                <span className="capitalize text-gray-300">{currentWeather.current_conditions.weather_desc ?? 'Unknown'}</span>
+                                <span className="text-xs text-gray-400">Humidity: {currentWeather.current_conditions.humidity ?? '--'}%</span>
+                            </div>
+                        ) : currentWeather ? (
+                            <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(currentWeather, null, 2)}</pre>
+                        ) : (
+                            <p>No current weather data</p>
+                        )}
+                    </Card>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card title={<span className="flex items-center gap-2"><AlertTriangle className="text-red-400 w-5 h-5" /> Active Alerts</span>}>
+                        {alerts.length > 0 ? (
+                            <ul className='space-y-1 text-sm'>
+                                {alerts.slice(0, 5).map((alert: any, index: number) => (
+                                    <li key={alert.alert_id || index} className={`p-1 rounded font-semibold ${alert.severity === 'critical' || alert.severity === 'high' ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200' : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'}`}>
+                                        [{alert.severity?.toUpperCase()}] {alert.alert_type} in {alert.zone_id}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No active alerts.</p>
+                        )}
+                    </Card>
+                    <ZoneControlPanel />
+                </div>
             </div>
-
-            {/* Placeholder for more detailed weather per zone */}
-            {currentWeather?.weather_data && (
-                 <Card title="Weather Data Per Zone">
-                    <pre className="text-xs whitespace-pre-wrap max-h-60 overflow-auto">{JSON.stringify(currentWeather.weather_data, null, 2)}</pre>
-                 </Card>
-            )}
-
-            {/* Add more specific widgets here later */}
-            {/* e.g., <CurrentConditionsWidget />, <AlertsWidget /> */}
+            {/* Right: Live Analysis & Logs */}
+            <div className="w-full lg:w-[350px] flex flex-col gap-6">
+                <LiveAnalysisPanel />
+                <AgentLogPanel />
+            </div>
         </div>
     );
 };

@@ -7,17 +7,8 @@ import MapAndControls from "@/components/shared/MapAndControls";
 
 export default function CybersecurityDashboardPage() {
   return (
-    <div className="flex gap-6 h-full w-full p-8">
-      {/* Main content on the left */}
-      <div className="flex-1 flex flex-col gap-6">
-        <CybersecurityDashboard />
-        <MapAndControls />
-      </div>
-      {/* Right sidebar */}
-      <div className="w-[400px] flex flex-col gap-6">
-        <ZoneStatusPanel />
-        <AttackSimulator />
-      </div>
+    <div className="flex items-center justify-center h-full w-full text-gray-400 text-xl">
+      Please use the sidebar to view the Cybersecurity dashboard on the main page.
     </div>
   );
 }

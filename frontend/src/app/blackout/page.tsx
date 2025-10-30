@@ -8,16 +8,8 @@ import MapAndControls from "@/components/shared/MapAndControls";
 
 export default function BlackoutDashboardPage() {
   return (
-    <div className="flex gap-6 h-full w-full p-8">
-      <div className="flex-1 flex flex-col gap-6">
-        <PowerDashboard />
-        <MapAndControls />
-      </div>
-      <div className="w-[400px] flex flex-col gap-6">
-        <ZonePowerPanel />
-        <IncidentPanel />
-        <BlackoutSimulator />
-      </div>
+    <div className="flex items-center justify-center h-full w-full text-gray-400 text-xl">
+      Please use the sidebar to view the Blackout dashboard on the main page.
     </div>
   );
 }
