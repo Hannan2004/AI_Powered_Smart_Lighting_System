@@ -4,5 +4,6 @@
 export * from './cybersecurity';
 export * from './weather';
 export * from './power';
+export * from './coordinator';
 
 // You might add a base fetch function here later if needed

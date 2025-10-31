@@ -1,3 +1,5 @@
+'use client';
+
 import React from "react";
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { CloudSun, ShieldCheck, Zap } from 'lucide-react';

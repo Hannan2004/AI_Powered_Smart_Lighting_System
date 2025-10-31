@@ -1,10 +1,22 @@
-'use client'; // Needed for Zustand hook
+'use client';
 
-import React from "react";
+import React from 'react';
+import { useDashboardStore } from '@/store/useDashboardStore';
+import MissionControlHeader from '@/components/layout/MissionControlHeader';
+import WeatherLightingView from '@/components/views/WeatherLightingView';
+import CyberDefenseView from '@/components/views/CyberDefenseView';
+import PowerGridView from '@/components/views/PowerGridView';
 
-import UnifiedDashboard from "@/components/shared/UnifiedDashboard";
+export default function MainPage() {
+  const selectedAgentView = useDashboardStore((s) => s.selectedAgentView);
 
-
-export default function UnifiedDashboardPage() {
-  return <UnifiedDashboard />;
+  return (
+    <div className="min-h-screen">
+      <MissionControlHeader />
+      {selectedAgentView === 'weather' && <WeatherLightingView />}
+      {selectedAgentView === 'cybersecurity' && <CyberDefenseView />}
+      {selectedAgentView === 'power' && <PowerGridView />}
+      {selectedAgentView === 'overview' && <WeatherLightingView />}
+    </div>
+  );
 }

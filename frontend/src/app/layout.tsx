@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/layout/Sidebar";
+import ToastProvider from "@/components/shared/ToastProvider";
+import MissionControlLayout from "@/components/layout/MissionControlLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Smart City Agent Dashboard",
-  description: "Monitor Cybersecurity, Weather, and Power agents",
+  title: "AI Smart Lighting System",
+  description: "AI-Powered Smart Lighting Management System",
 };
 
 export default function RootLayout({
@@ -17,13 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-white flex h-screen">
-        {/* Persistent Sidebar */}
-        <Sidebar />
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-y-auto">
+      <body className="bg-[#0a1628] text-white">
+        <ToastProvider />
+        <MissionControlLayout>
           {children}
-        </main>
+        </MissionControlLayout>
       </body>
     </html>
   );
